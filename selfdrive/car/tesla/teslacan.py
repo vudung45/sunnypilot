@@ -69,4 +69,5 @@ class TeslaCAN:
     return self.pt_packer.make_can_msg("SCCM_rightStalk", CANBUS.vehicle, values)
 
   def cancel_acc(self, counter):
+    # 13 = ACC_CANCEL_GENERIC_SILENT
     return self.create_longitudinal_commands(13, 0, 0, 0, counter)

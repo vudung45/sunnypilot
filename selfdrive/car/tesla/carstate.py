@@ -18,7 +18,6 @@ class CarState(CarStateBase):
     self.acc_enabled = None
     self.sccm_right_stalk_counter = None
     self.das_control = None
-    self.di_state = None
 
   def update(self, cp, cp_cam, cp_adas):
     ret = car.CarState.new_message()
@@ -98,7 +97,6 @@ class CarState(CarStateBase):
     # Messages needed by carcontroller
     self.sccm_right_stalk_counter = copy.copy(cp_adas.vl["SCCM_rightStalk"]["SCCM_rightStalkCounter"])
     self.das_control = copy.copy(cp_cam.vl["DAS_control"])
-    self.di_state = copy.copy(cp.vl["DI_state"])
 
     return ret
 
