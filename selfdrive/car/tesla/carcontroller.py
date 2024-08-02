@@ -52,7 +52,8 @@ class CarController(CarControllerBase):
       # Try disabling long (op or stock) with lat active (acc-state 13 = acc cancel generic silent, aka cruise standby)
       if CS.acc_enabled:
         counter = CS.das_control["DAS_controlCounter"]
-        can_sends.append(self.tesla_can.create_longitudinal_commands(13, 0, 0, 0, counter))
+        target_speed = max(CS.out.vEgo, 0)
+        can_sends.append(self.tesla_can.create_longitudinal_commands(13, target_speed, 0, 0, counter))
 
     # Cancel on user steering override, since there is no steering torque blending
     if hands_on_fault:
