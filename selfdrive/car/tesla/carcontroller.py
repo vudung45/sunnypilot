@@ -54,10 +54,8 @@ class CarController(CarControllerBase):
       pcm_cancel_cmd = True
 
     # Sent cancel request only if ACC is enabled
-    if self.frame % 10 == 0 and pcm_cancel_cmd and CS.acc_enabled:
-      counter = int(CS.sccm_right_stalk_counter)
-      can_sends.append(self.tesla_can.right_stalk_press((counter + 1) % 16 , 1))  # half up (cancel acc)
-      can_sends.append(self.tesla_can.right_stalk_press((counter + 2) % 16, 0))  # to prevent neutral gear warning
+    if pcm_cancel_cmd and CS.acc_enabled:
+      can_sends.append(self.tesla_can.cancel_acc(CS.di_state))
 
     # TODO: HUD control
 
