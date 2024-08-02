@@ -38,8 +38,15 @@ class CarController(CarControllerBase):
       self.apply_angle_last = apply_angle
       can_sends.append(self.tesla_can.create_steering_control(apply_angle, lkas_enabled, (self.frame // 2) % 16))
 
+    # Cancel on user steering override, since there is no steering torque blending
+    if hands_on_fault:
+      pcm_cancel_cmd = True
+
     # Longitudinal control
-    if self.CP.openpilotLongitudinalControl:
+    if pcm_cancel_cmd and CS.acc_enabled:
+      counter = CS.das_control["DAS_controlCounter"]
+      can_sends.append(self.tesla_can.cancel_acc(counter))
+    elif self.CP.openpilotLongitudinalControl:
       acc_state = CS.das_control["DAS_accState"]
       target_accel = actuators.accel
       target_speed = max(CS.out.vEgo + (target_accel * CarControllerParams.ACCEL_TO_SPEED_MULTIPLIER), 0)
@@ -48,14 +55,6 @@ class CarController(CarControllerBase):
 
       counter = CS.das_control["DAS_controlCounter"]
       can_sends.append(self.tesla_can.create_longitudinal_commands(acc_state, target_speed, min_accel, max_accel, counter))
-
-    # Cancel on user steering override, since there is no steering torque blending
-    if hands_on_fault:
-      pcm_cancel_cmd = True
-
-    # Sent cancel request only if ACC is enabled
-    if pcm_cancel_cmd and CS.acc_enabled:
-      can_sends.append(self.tesla_can.cancel_acc(CS.di_state))
 
     # TODO: HUD control
 

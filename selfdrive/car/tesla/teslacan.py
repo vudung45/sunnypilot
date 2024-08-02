@@ -68,9 +68,5 @@ class TeslaCAN:
     values["SCCM_rightStalkCrc"] = self.right_stalk_crc(data[1:])
     return self.pt_packer.make_can_msg("SCCM_rightStalk", CANBUS.vehicle, values)
 
-  def cancel_acc(self, di_state):
-    values = di_state.copy()
-    values["DI_cruiseState"] = 0
-    data = self.packer.make_can_msg("DI_state", CANBUS.autopilot_party, values)[2]
-    values["DI_locStatusChecksum"] = self.checksum(286, data[1:])
-    return self.packer.make_can_msg("DI_state", CANBUS.autopilot_party, values)
+  def cancel_acc(self, counter):
+    return self.create_longitudinal_commands(0, 0, 0, 0, counter)
