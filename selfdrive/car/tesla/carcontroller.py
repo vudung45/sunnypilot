@@ -39,15 +39,18 @@ class CarController(CarControllerBase):
       can_sends.append(self.tesla_can.create_steering_control(apply_angle, lkas_enabled, (self.frame // 2) % 16))
 
     # Longitudinal control
-    if self.CP.openpilotLongitudinalControl:
-      acc_state = CS.das_control["DAS_accState"]
-      target_accel = actuators.accel
-      target_speed = max(CS.out.vEgo + (target_accel * CarControllerParams.ACCEL_TO_SPEED_MULTIPLIER), 0)
-      max_accel = 0 if target_accel < 0 else target_accel
-      min_accel = 0 if target_accel > 0 else target_accel
+    # if self.CP.openpilotLongitudinalControl:
+    #   acc_state = CS.das_control["DAS_accState"]
+    #   target_accel = actuators.accel
+    #   target_speed = max(CS.out.vEgo + (target_accel * CarControllerParams.ACCEL_TO_SPEED_MULTIPLIER), 0)
+    #   max_accel = 0 if target_accel < 0 else target_accel
+    #   min_accel = 0 if target_accel > 0 else target_accel
 
-      counter = CS.das_control["DAS_controlCounter"]
-      can_sends.append(self.tesla_can.create_longitudinal_commands(acc_state, target_speed, min_accel, max_accel, counter))
+    #   counter = CS.das_control["DAS_controlCounter"]
+    #   can_sends.append(self.tesla_can.create_longitudinal_commands(acc_state, target_speed, min_accel, max_accel, counter))
+
+      # Try disabling long (op or stock) with lat active (acc-state 0 = acc cancel generic, aka cruise disabled)
+      can_sends.append(self.tesla_can.create_longitudinal_commands(0, 0, 0, 0, counter))
 
     # Cancel on user steering override, since there is no steering torque blending
     if hands_on_fault:
