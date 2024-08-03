@@ -42,11 +42,16 @@ class CarInterface(CarInterfaceBase):
     if not ret.steerFaultTemporary and not ret.steerFaultPermanent:
       if self.enable_mads:
         for b in self.CS.button_events:
-          if b.type == ButtonType.altButton1 and b.pressed:
-            self.CS.madsEnabled = True
-          elif b.type == ButtonType.altButton2 and b.pressed:
+          if b.type == ButtonType.resumeCruise and not b.pressed:  # Falling edge detection to avoid Neutral gear intent
+            if False:  # TODO: add param:   self.params.get_bool("TeslaMadsAccFirst"):
+              self.CS.accEnabled = True
+              self.CS.madsEnabled = True if ret.cruiseState.enabled else self.CS.madsEnabled
+            else:
+              self.CS.madsEnabled = True
+              self.CS.accEnabled = True if c.latActive else self.CS.accEnabled
+          elif b.type == ButtonType.cancel:
             self.CS.madsEnabled = False
-        self.CS.madsEnabled = self.get_acc_mads(ret.cruiseState.enabled, self.CS.accEnabled, self.CS.madsEnabled)
+            self.CS.accEnabled = False
         self.CS.madsEnabled = False if self.CS.steer_warning == "EAC_ERROR_HANDS_ON" and self.CS.hands_on_level >= 3 else self.CS.madsEnabled
     else:
       self.CS.madsEnabled = False
