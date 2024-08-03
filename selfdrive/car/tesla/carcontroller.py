@@ -13,6 +13,7 @@ class CarController(CarControllerBase):
     self.packer = CANPacker(dbc_name)
     self.pt_packer = CANPacker(DBC[CP.carFingerprint]['pt'])
     self.tesla_can = TeslaCAN(self.packer, self.pt_packer)
+    self.last_right_stalk_press = 0
 
   def update(self, CC, CS, now_nanos):
     actuators = CC.actuators
@@ -55,11 +56,15 @@ class CarController(CarControllerBase):
     if CS.madsEnabled and not CS.accEnabled and CS.acc_enabled:
       pcm_cancel_cmd = True
 
-    # Sent cancel request only if ACC is enabled
+    # Send cancel request only if ACC is enabled
     if self.frame % 10 == 0 and pcm_cancel_cmd and CS.acc_enabled:
       counter = int(CS.sccm_right_stalk_counter)
-      can_sends.append(self.tesla_can.right_stalk_press((counter + 1) % 16 , 1))  # half up (cancel acc)
-      can_sends.append(self.tesla_can.right_stalk_press((counter + 1) % 16 , 0))  # back to 0 for falling edge detection
+      # Alternate between 1 and 0 every 10 frames, car needs time to detect falling edge in order to prevent shift to N
+      value = 1 if self.last_right_stalk_press == 0 else 0
+      can_sends.append(self.tesla_can.right_stalk_press((counter + 1) % 16 , value))
+      self.last_right_stalk_press = value
+    else:
+      self.last_right_stalk_press = 0
 
     # TODO: HUD control
 
