@@ -51,6 +51,10 @@ class CarController(CarControllerBase):
     if hands_on_fault and not CS.madsEnabled and CC.latActive:
       pcm_cancel_cmd = True
 
+    # Cancel ACC if MADS is enabled and ACC is not supposed to be enabled
+    if CS.madsEnabled and not CS.accEnabled and CS.acc_enabled:
+      pcm_cancel_cmd = True
+
     # Sent cancel request only if ACC is enabled
     if self.frame % 10 == 0 and pcm_cancel_cmd and CS.acc_enabled:
       counter = int(CS.sccm_right_stalk_counter)
