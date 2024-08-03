@@ -63,7 +63,7 @@ class CarController(CarControllerBase):
       value = 1 if self.last_right_stalk_press == 0 else 0
       can_sends.append(self.tesla_can.right_stalk_press((counter + 1) % 16 , value))
       self.last_right_stalk_press = value
-    else:
+    elif self.last_right_stalk_press != 0 and self.frame % 10 == 0:
       self.last_right_stalk_press = 0
 
     # TODO: HUD control
