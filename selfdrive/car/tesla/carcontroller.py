@@ -48,7 +48,7 @@ class CarController(CarControllerBase):
       counter = CS.das_control["DAS_controlCounter"]
       can_sends.append(self.tesla_can.create_longitudinal_commands(acc_state, target_speed, min_accel, max_accel, counter))
 
-    if hands_on_fault and not CS.madsEnabled and CC.lat_active:
+    if hands_on_fault and not CS.madsEnabled and CC.latActive:
       pcm_cancel_cmd = True
 
     # Sent cancel request only if ACC is enabled
