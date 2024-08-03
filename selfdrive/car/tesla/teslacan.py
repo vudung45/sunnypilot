@@ -26,11 +26,12 @@ class TeslaCAN:
     crc2_func = crcmod.mkCrcFun(0x12F, initCrc=crc1, xorOut=0xFF, rev=False)
     return crc2_func(bytes([right_stalk_val[cntr]])) & 0xFF
 
-  def create_steering_control(self, angle, enabled, counter):
+  def create_steering_control(self, angle, enabled, counter, use_lka_mode):
+    control_type = 2 if use_lka_mode else 1
     values = {
       "DAS_steeringAngleRequest": -angle,
       "DAS_steeringHapticRequest": 0,
-      "DAS_steeringControlType": 1 if enabled else 0,
+      "DAS_steeringControlType": control_type if enabled else 0,
       "DAS_steeringControlCounter": counter,
     }
 

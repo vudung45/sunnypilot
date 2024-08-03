@@ -119,6 +119,27 @@ SPVehiclesTogglesPanel::SPVehiclesTogglesPanel(VehiclePanel *parent) : ListWidge
   subaruManualParkingBrakeSng->setConfirmation(true, false);
   addItem(subaruManualParkingBrakeSng);
 
+  // Tesla
+  addItem(new LabelControlSP(tr("Tesla")));
+  std::vector<QString> tmaf_settings_texts{tr("Steering -> ACC"), tr("ACC -> Steering")};
+  auto tmaf_settings = new ButtonParamControlSP(
+    "TeslaMadsAccFirst",
+    tr("M.A.D.S. | Activation Order"),
+    tr("Determines the order in which assists will be activated upon Half-press -> Full-press of the right stalk"),
+    "../assets/offroad/icon_blank.png",
+    tmaf_settings_texts,
+    500);
+  tmaf_settings->showDescription();
+  addItem(tmaf_settings);
+
+  auto teslaAccMadsCombo = new ParamControlSP(
+    "TeslaMadsCombo", // Synced with the existing AccMadsCombo pref because it's the same feature
+    tr("M.A.D.S. | Enable ACC+Steering on Full-press"),
+    tr("Engage Steering and ACC together when fully pressing down the right stalk.\n\n"
+       "Otherwise, a Full-press will skip the Half-press activation."),
+    "../assets/offroad/icon_blank.png");
+  addItem(teslaAccMadsCombo);
+
   // Toyota/Lexus
   addItem(new LabelControlSP(tr("Toyota/Lexus")));
   stockLongToyota = new ParamControlSP(
