@@ -44,7 +44,8 @@ class CarController(CarControllerBase):
 
     # Longitudinal control
     if pcm_cancel_cmd and CS.acc_enabled:
-      counter = CS.das_control["DAS_controlCounter"]
+      # Increment counter so cancel is prioritized even with stock TACC
+      counter = (CS.das_control["DAS_controlCounter"] + 1) % 8
       can_sends.append(self.tesla_can.cancel_acc(counter))
     elif self.CP.openpilotLongitudinalControl:
       acc_state = CS.das_control["DAS_accState"]
