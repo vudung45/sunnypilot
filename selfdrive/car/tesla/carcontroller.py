@@ -13,7 +13,6 @@ class CarController(CarControllerBase):
     self.packer = CANPacker(dbc_name)
     self.pt_packer = CANPacker(DBC[CP.carFingerprint]['pt'])
     self.tesla_can = TeslaCAN(self.packer, self.pt_packer)
-    self.last_right_stalk_press = 0
     self.pcm_cancel_cmd = False # Must be latching because of frame rate
     self.acc_mismatch_start_nanos = None
 
@@ -41,17 +40,6 @@ class CarController(CarControllerBase):
       use_lka_mode = CS.params_list.enable_mads
       can_sends.append(self.tesla_can.create_steering_control(apply_angle, lkas_enabled, (self.frame // 2) % 16, use_lka_mode))
 
-    # Longitudinal control
-    if self.CP.openpilotLongitudinalControl:
-      acc_state = CS.das_control["DAS_accState"]
-      target_accel = actuators.accel
-      target_speed = max(CS.out.vEgo + (target_accel * CarControllerParams.ACCEL_TO_SPEED_MULTIPLIER), 0)
-      max_accel = 0 if target_accel < 0 else target_accel
-      min_accel = 0 if target_accel > 0 else target_accel
-
-      counter = CS.das_control["DAS_controlCounter"]
-      can_sends.append(self.tesla_can.create_longitudinal_commands(acc_state, target_speed, min_accel, max_accel, counter))
-
     if hands_on_fault and not CS.params_list.enable_mads:
       self.pcm_cancel_cmd = True
 
@@ -69,15 +57,20 @@ class CarController(CarControllerBase):
     if not CS.acc_enabled:
       self.pcm_cancel_cmd = False
 
-    # Send cancel request only if ACC is enabled
-    if self.frame % 10 == 0 and self.pcm_cancel_cmd:
-      counter = int(CS.sccm_right_stalk_counter)
-      # Alternate between 1 and 0 every 10 frames, car needs time to detect falling edge in order to prevent shift to N
-      value = 1 if self.last_right_stalk_press == 0 else 0
-      can_sends.append(self.tesla_can.right_stalk_press((counter + 1) % 16 , value))
-      self.last_right_stalk_press = value
-    elif self.last_right_stalk_press != 0 and self.frame % 10 == 0:
-      self.last_right_stalk_press = 0
+    # Longitudinal control
+    if self.pcm_cancel_cmd:
+      # Increment counter so cancel is prioritized even with stock TACC
+      counter = (CS.das_control["DAS_controlCounter"] + 1) % 8
+      can_sends.append(self.tesla_can.cancel_acc(counter))
+    elif self.CP.openpilotLongitudinalControl:
+      acc_state = CS.das_control["DAS_accState"]
+      target_accel = actuators.accel
+      target_speed = max(CS.out.vEgo + (target_accel * CarControllerParams.ACCEL_TO_SPEED_MULTIPLIER), 0)
+      max_accel = 0 if target_accel < 0 else target_accel
+      min_accel = 0 if target_accel > 0 else target_accel
+
+      counter = CS.das_control["DAS_controlCounter"]
+      can_sends.append(self.tesla_can.create_longitudinal_commands(acc_state, target_speed, min_accel, max_accel, counter))
 
     # TODO: HUD control
 
