@@ -55,17 +55,14 @@ class CarInterface(CarInterfaceBase):
       self.CS.madsEnabled = self.get_acc_mads(ret.cruiseState.enabled, self.CS.accEnabled, self.CS.madsEnabled)
       self.CS.madsEnabled = False if self.CS.hands_on_level >= 3 else self.CS.madsEnabled
 
+    self.CS.accEnabled = ret.cruiseState.enabled  # ACC state is controlled by the car itself
+
     if not self.CP.pcmCruise or (self.CP.pcmCruise and self.CP.minEnableSpeed > 0) or not self.CP.pcmCruiseSpeed:
       if any(b.type == ButtonType.cancel for b in self.CS.button_events):
         self.CS.madsEnabled, self.CS.accEnabled = self.get_sp_cancel_cruise_state(self.CS.madsEnabled)
     if self.get_sp_pedal_disengage(ret):
       self.CS.madsEnabled, self.CS.accEnabled = self.get_sp_cancel_cruise_state(self.CS.madsEnabled)
       ret.cruiseState.enabled = ret.cruiseState.enabled if not self.enable_mads else False if self.CP.pcmCruise else self.CS.accEnabled
-
-    if self.CP.pcmCruise and self.CP.minEnableSpeed > 0 and self.CP.pcmCruiseSpeed:
-      if ret.gasPressed and not ret.cruiseState.enabled:
-        self.CS.accEnabled = False
-      self.CS.accEnabled = ret.cruiseState.enabled or self.CS.accEnabled
 
     ret, self.CS = self.get_sp_common_state(ret, self.CS)
 
