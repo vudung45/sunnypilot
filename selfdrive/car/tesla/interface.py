@@ -18,9 +18,9 @@ class CarInterface(CarInterfaceBase):
   def _get_params(ret, candidate, fingerprint, car_fw, experimental_long, docs):
     ret.carName = "tesla"
 
-    # There is no safe way to do steer blending with user torque,
-    # so the steering behaves like autopilot. This is not
-    # how openpilot should be, hence dashcamOnly
+    # Steer blending with user torque is done virtually, and is limited to 2Nm of torque
+    # before it temporarily disables OP Lat control for higher user torque. This is not
+    # how openpilot typically works, hence dashcamOnly
     # ret.dashcamOnly = True
 
     ret.steerControlType = car.CarParams.SteerControlType.angle
@@ -53,7 +53,7 @@ class CarInterface(CarInterfaceBase):
           else:
             self.last_mads_press = now
       self.CS.madsEnabled = self.get_acc_mads(ret.cruiseState.enabled, self.CS.accEnabled, self.CS.madsEnabled)
-      self.CS.madsEnabled = False if self.CS.hands_on_level >= 3 else self.CS.madsEnabled
+      self.CS.madsEnabled = False if self.CS.steering_override else self.CS.madsEnabled
 
     self.CS.accEnabled = ret.cruiseState.enabled  # ACC state is controlled by the car itself
 

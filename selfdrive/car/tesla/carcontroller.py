@@ -1,4 +1,5 @@
 from openpilot.common.numpy_fast import clip
+from openpilot.common.params import Params
 from opendbc.can.packer import CANPacker
 from openpilot.selfdrive.car import apply_std_steer_angle_limits
 from openpilot.selfdrive.car.interfaces import CarControllerBase
@@ -6,28 +7,67 @@ from openpilot.selfdrive.car.tesla.teslacan import TeslaCAN
 from openpilot.selfdrive.car.tesla.values import DBC, CarControllerParams
 
 
+def torque_blended_angle(apply_angle, torsion_bar_torque):
+  deadzone = CarControllerParams.TORQUE_TO_ANGLE_DEADZONE
+  if abs(torsion_bar_torque) < deadzone:
+    return apply_angle
+
+  limit = CarControllerParams.TORQUE_TO_ANGLE_CLIP
+  if apply_angle * torsion_bar_torque >= 0:
+    # Manually steering in the same direction as OP
+    strength = CarControllerParams.TORQUE_TO_ANGLE_MULTIPLIER_OUTER
+  else:
+    # User is opposing OP direction
+    strength = CarControllerParams.TORQUE_TO_ANGLE_MULTIPLIER_INNER
+
+  torque = torsion_bar_torque - deadzone if torsion_bar_torque > 0 else torsion_bar_torque + deadzone
+  return apply_angle + clip(torque, -limit, limit) * strength
+
 class CarController(CarControllerBase):
   def __init__(self, dbc_name, CP, VM):
     super().__init__(dbc_name, CP, VM)
     self.apply_angle_last = 0
+    self.last_hands_nanos = 0
     self.packer = CANPacker(dbc_name)
     self.pt_packer = CANPacker(DBC[CP.carFingerprint]['pt'])
     self.tesla_can = TeslaCAN(self.packer, self.pt_packer)
     self.pcm_cancel_cmd = False # Must be latching because of frame rate
+    self.virtual_blending = Params().get_bool("TeslaVirtualTorqueBlending")
 
   def update(self, CC, CS, now_nanos):
     actuators = CC.actuators
 
     can_sends = []
 
-    # Temp disable steering on a hands_on_fault, and allow for user override
-    hands_on_fault = CS.hands_on_level >= 3
-    lkas_enabled = CC.latActive and not hands_on_fault
-
     if self.frame % 2 == 0:
+      # Detect a user override of the steering wheel when...
+      CS.steering_override = (CS.hands_on_level >= 3 or  # user is applying lots of force or...
+        (CS.steering_override and  # already overriding and...
+         abs(CS.out.steeringAngleDeg - actuators.steeringAngleDeg) > CarControllerParams.CONTINUED_OVERRIDE_ANGLE) and
+         not CS.out.standstill)  # continued angular disagreement while moving.
+
+      # If fully hands off for 1 second then reset override (in case of continued disagreement above)
+      if CS.hands_on_level > 0:
+        self.last_hands_nanos = now_nanos
+      elif now_nanos - self.last_hands_nanos > 1e9:
+        CS.steering_override = False
+
+      # Reset override when disengaged to ensure a fresh activation always engages steering.
+      if not CC.latActive:
+        CS.steering_override = False
+
+      # Temporarily disable LKAS if user is overriding or if OP lat isn't active
+      lkas_enabled = CC.latActive and not CS.steering_override
+
       if lkas_enabled:
+        if self.virtual_blending:
+          # Update steering angle request with user input torque
+          apply_angle = torque_blended_angle(actuators.steeringAngleDeg, CS.out.steeringTorque)
+        else:
+          apply_angle = actuators.steeringAngleDeg
+
         # Angular rate limit based on speed
-        apply_angle = apply_std_steer_angle_limits(actuators.steeringAngleDeg, self.apply_angle_last, CS.out.vEgo, CarControllerParams)
+        apply_angle = apply_std_steer_angle_limits(apply_angle, self.apply_angle_last, CS.out.vEgo, CarControllerParams)
 
         # To not fault the EPS
         apply_angle = clip(apply_angle, CS.out.steeringAngleDeg - 20, CS.out.steeringAngleDeg + 20)
@@ -41,8 +81,10 @@ class CarController(CarControllerBase):
 
     self.pcm_cancel_cmd = CC.cruiseControl.cancel or not CS.accEnabled or self.pcm_cancel_cmd
 
-    if hands_on_fault and not CS.params_list.enable_mads:
-      self.pcm_cancel_cmd = True
+    if not self.virtual_blending:
+      # Cancel on user steering override when blending and MADS are disabled
+      if CS.steering_override and not CS.params_list.enable_mads:
+        self.pcm_cancel_cmd = True
 
     # Unlatch cancel command only when ACC is actually disabled
     if not CS.acc_enabled:
