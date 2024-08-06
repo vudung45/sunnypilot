@@ -47,7 +47,7 @@ class CarInterface(CarInterfaceBase):
           # MADS button (right scroll wheel click) is used for voice command
           # So we use double-click to toggle MADS
           if time.monotonic() - self.last_mads_press < 1.0:
-            self.madsEnabled = not self.madsEnabled
+            self.CS.madsEnabled = not self.CS.madsEnabled
           self.last_mads_press = time.monotonic()
       self.CS.madsEnabled = self.get_acc_mads(ret.cruiseState.enabled, self.CS.accEnabled, self.CS.madsEnabled)
       self.CS.madsEnabled = False if self.CS.hands_on_level >= 3 else self.CS.madsEnabled
