@@ -66,8 +66,7 @@ BUTTONS = [
   Button(car.CarState.ButtonEvent.Type.decelCruise, "VCLEFT_switchStatus", "VCLEFT_swcRightScrollTicks", list(range(-9, 0))),
   Button(car.CarState.ButtonEvent.Type.cancel, "SCCM_rightStalk", "SCCM_rightStalkStatus", [1, 2]),
   Button(car.CarState.ButtonEvent.Type.resumeCruise, "SCCM_rightStalk", "SCCM_rightStalkStatus", [3, 4]),
-  Button(car.CarState.ButtonEvent.Type.altButton1, "SCCM_rightStalk", "SCCM_rightStalkStatus", [3, 4]),  # Half press (includes full to allow for falling edge filtering)
-  Button(car.CarState.ButtonEvent.Type.altButton2, "SCCM_rightStalk", "SCCM_rightStalkStatus", [4]),  # Full press
+  Button(car.CarState.ButtonEvent.Type.altButton2, "VCLEFT_switchStatus", "VCLEFT_swcRightPressed", [2]),
   Button(car.CarState.ButtonEvent.Type.gapAdjustCruise, "VCLEFT_switchStatus", "VCLEFT_swcRightTiltRight", [2]),  # TODO: directional gap adjustment
 ]
 

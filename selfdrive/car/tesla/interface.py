@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 from cereal import car
 from panda import Panda
 from openpilot.selfdrive.car.tesla.values import CAR
@@ -11,8 +12,7 @@ ButtonType = car.CarState.ButtonEvent.Type
 class CarInterface(CarInterfaceBase):
   def __init__(self, CP, CarController, CarState):
     super().__init__(CP, CarController, CarState)
-    self.last_full_press = False
-    self.last_gear = car.CarState.GearShifter.unknown
+    self.last_mads_press = 0
 
   @staticmethod
   def _get_params(ret, candidate, fingerprint, car_fw, experimental_long, docs):
@@ -43,32 +43,33 @@ class CarInterface(CarInterfaceBase):
 
     if self.enable_mads:
       for b in self.CS.button_events:
-        if b.type == ButtonType.altButton1 and b.pressed:  # Rising edge from none to half
-          self.last_full_press = False
-          self.last_gear = ret.gearShifter
-        elif b.type == ButtonType.altButton2 and b.pressed:  # Rising edge from half to full
-          self.last_full_press = True
-        elif b.type == ButtonType.altButton1 and not b.pressed:  # Falling edge from half to none
-          if self.last_gear == car.CarState.GearShifter.drive and ret.gearShifter == car.CarState.GearShifter.drive:
-            if self.CS.params_list.tesla_mads_acc_first:
-              self.CS.accEnabled = True if not self.last_full_press or self.CS.params_list.tesla_mads_combo else self.CS.accEnabled
-              self.CS.madsEnabled = True if self.last_full_press else self.CS.madsEnabled
-            else:
-              self.CS.madsEnabled = True if not self.last_full_press or self.CS.params_list.tesla_mads_combo else self.CS.madsEnabled
-              self.CS.accEnabled = True if self.last_full_press else self.CS.accEnabled
-        elif b.type == ButtonType.cancel:
-          self.CS.madsEnabled = False
-          self.CS.accEnabled = False
+        if b.type == ButtonType.altButton2 and not b.pressed:
+          # MADS button (right scroll wheel click) is used for voice command
+          # So we use double-click to toggle MADS
+          if time.monotonic() - self.last_mads_press < 1.0:
+            self.madsEnabled = not self.madsEnabled
+          self.last_mads_press = time.monotonic()
+      self.CS.madsEnabled = self.get_acc_mads(ret.cruiseState.enabled, self.CS.accEnabled, self.CS.madsEnabled)
       self.CS.madsEnabled = False if self.CS.hands_on_level >= 3 else self.CS.madsEnabled
-      self.CS.accEnabled = False if not ret.cruiseState.available else self.CS.accEnabled
 
+    if not self.CP.pcmCruise or (self.CP.pcmCruise and self.CP.minEnableSpeed > 0) or not self.CP.pcmCruiseSpeed:
+      if any(b.type == ButtonType.cancel for b in self.CS.button_events):
+        self.CS.madsEnabled, self.CS.accEnabled = self.get_sp_cancel_cruise_state(self.CS.madsEnabled)
     if self.get_sp_pedal_disengage(ret):
       self.CS.madsEnabled, self.CS.accEnabled = self.get_sp_cancel_cruise_state(self.CS.madsEnabled)
       ret.cruiseState.enabled = ret.cruiseState.enabled if not self.enable_mads else False if self.CP.pcmCruise else self.CS.accEnabled
 
+    if self.CP.pcmCruise and self.CP.minEnableSpeed > 0 and self.CP.pcmCruiseSpeed:
+      if ret.gasPressed and not ret.cruiseState.enabled:
+        self.CS.accEnabled = False
+      self.CS.accEnabled = ret.cruiseState.enabled or self.CS.accEnabled
+
     ret, self.CS = self.get_sp_common_state(ret, self.CS)
 
-    ret.buttonEvents = self.CS.button_events
+    ret.buttonEvents = [
+      *self.CS.button_events,
+      *self.button_events.create_mads_event(self.CS.madsEnabled, self.CS.out.madsEnabled)  # MADS BUTTON
+    ]
 
     events = self.create_common_events(ret, c, pcm_enable=False)
 

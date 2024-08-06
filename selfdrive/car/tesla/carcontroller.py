@@ -15,7 +15,6 @@ class CarController(CarControllerBase):
     self.tesla_can = TeslaCAN(self.packer, self.pt_packer)
     self.last_right_stalk_press = 0
     self.pcm_cancel_cmd = False # Must be latching because of frame rate
-    self.acc_mismatch_start_nanos = None
 
   def update(self, CC, CS, now_nanos):
     actuators = CC.actuators
@@ -54,16 +53,6 @@ class CarController(CarControllerBase):
 
     if hands_on_fault and not CS.params_list.enable_mads:
       self.pcm_cancel_cmd = True
-
-    # Cancel ACC if MADS is enabled and ACC is not supposed to be enabled
-    if CS.params_list.enable_mads and not CS.accEnabled and CS.acc_enabled:
-      # ACC mismatch must persist for a while before cancelling because of race condition
-      if self.acc_mismatch_start_nanos is None:
-        self.acc_mismatch_start_nanos = now_nanos
-      elif now_nanos - self.acc_mismatch_start_nanos > 200e6: # 200ms
-        self.pcm_cancel_cmd = True
-    else:
-      self.acc_mismatch_start_nanos = None
 
     # Unlatch cancel command only when ACC is actually disabled
     if not CS.acc_enabled:
