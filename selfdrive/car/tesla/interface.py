@@ -2,6 +2,7 @@
 import time
 from cereal import car
 from panda import Panda
+from openpilot.common.params import Params
 from openpilot.selfdrive.car.tesla.values import CAR
 from openpilot.selfdrive.car import get_safety_config
 from openpilot.selfdrive.car.interfaces import CarInterfaceBase
@@ -28,10 +29,14 @@ class CarInterface(CarInterfaceBase):
     ret.longitudinalActuatorDelay = 0.5 # s
     ret.radarUnavailable = True
 
+    params = Params()
+    stock_acc = params.get_bool("StockLongTesla")
+
     if candidate in [CAR.TESLA_AP3_MODEL3, CAR.TESLA_AP3_MODELY]:
       flags = Panda.FLAG_TESLA_MODEL3_Y
-      flags |= Panda.FLAG_TESLA_LONG_CONTROL
-      ret.openpilotLongitudinalControl = True
+      if not stock_acc:
+        flags |= Panda.FLAG_TESLA_LONG_CONTROL
+      ret.openpilotLongitudinalControl = not stock_acc
       ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.tesla, flags)]
 
     ret.steerLimitTimer = 1.0
