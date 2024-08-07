@@ -62,12 +62,10 @@ class CarInterface(CarInterfaceBase):
 
     self.CS.accEnabled = ret.cruiseState.enabled  # ACC state is controlled by the car itself
 
-    if not self.CP.pcmCruise or (self.CP.pcmCruise and self.CP.minEnableSpeed > 0) or not self.CP.pcmCruiseSpeed:
-      if any(b.type == ButtonType.cancel for b in self.CS.button_events):
-        self.CS.madsEnabled, self.CS.accEnabled = self.get_sp_cancel_cruise_state(self.CS.madsEnabled)
     if self.get_sp_pedal_disengage(ret):
-      self.CS.madsEnabled, self.CS.accEnabled = self.get_sp_cancel_cruise_state(self.CS.madsEnabled)
-      ret.cruiseState.enabled = ret.cruiseState.enabled if not self.enable_mads else False if self.CP.pcmCruise else self.CS.accEnabled
+      self.CS.madsEnabled, _ = self.get_sp_cancel_cruise_state(self.CS.madsEnabled)
+      # TEMP HACK: trying to find a way to set CC.cruiseControl.cancel
+      ret.brakePressed = True
 
     ret, self.CS = self.get_sp_common_state(ret, self.CS)
 

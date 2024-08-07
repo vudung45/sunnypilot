@@ -79,7 +79,7 @@ class CarController(CarControllerBase):
       can_sends.append(self.tesla_can.create_steering_control(apply_angle, lkas_enabled, (self.frame // 2) % 16, use_lka_mode))
 
 
-    self.pcm_cancel_cmd = CC.cruiseControl.cancel or not CS.accEnabled or self.pcm_cancel_cmd
+    self.pcm_cancel_cmd = CC.cruiseControl.cancel or self.pcm_cancel_cmd
 
     if not self.virtual_blending:
       # Cancel on user steering override when blending and MADS are disabled
