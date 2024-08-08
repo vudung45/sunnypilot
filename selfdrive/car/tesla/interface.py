@@ -13,7 +13,6 @@ ButtonType = car.CarState.ButtonEvent.Type
 class CarInterface(CarInterfaceBase):
   def __init__(self, CP, CarController, CarState):
     super().__init__(CP, CarController, CarState)
-    self.last_mads_press = -1
 
   @staticmethod
   def _get_params(ret, candidate, fingerprint, car_fw, experimental_long, docs):
@@ -50,14 +49,7 @@ class CarInterface(CarInterfaceBase):
     if self.enable_mads:
       for b in self.CS.button_events:
         if b.type == ButtonType.altButton2 and not b.pressed:
-          # MADS button (right scroll wheel click) is used for voice command
-          # So we use double-click to toggle MADS
-          now = time.monotonic()
-          if now - self.last_mads_press < 1.0:
-            self.CS.madsEnabled = not self.CS.madsEnabled
-            self.last_mads_press = -1
-          else:
-            self.last_mads_press = now
+          self.CS.madsEnabled = not self.CS.madsEnabled
       self.CS.madsEnabled = self.get_acc_mads(ret.cruiseState.enabled, self.CS.accEnabled, self.CS.madsEnabled)
       self.CS.madsEnabled = False if self.CS.steering_override else self.CS.madsEnabled
 
