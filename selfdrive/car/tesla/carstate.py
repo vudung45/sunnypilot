@@ -104,7 +104,7 @@ class CarState(CarStateBase):
     ret.stockAeb = (cp_cam.vl["DAS_control"]["DAS_aebEvent"] == 1)
 
     # Messages needed by carcontroller
-    self.sccm_right_stalk_counter = copy.copy(cp_adas.vl["SCCM_rightStalk"]["SCCM_rightStalkCounter"])
+    # self.sccm_right_stalk_counter = copy.copy(cp_adas.vl["SCCM_rightStalk"]["SCCM_rightStalkCounter"])
     self.das_control = copy.copy(cp_cam.vl["DAS_control"])
 
     return ret
@@ -145,8 +145,8 @@ class CarState(CarStateBase):
   def get_adas_can_parser(CP):  # Vehicle Can on Model 3
     messages = [
       ("VCLEFT_switchStatus", 20),
-      ("SCCM_leftStalk", 10),
-      ("SCCM_rightStalk", 10),
+      # ("SCCM_leftStalk", 10),
+      # ("SCCM_rightStalk", 10),
       ("SCCM_steeringAngleSensor", 100),
       ("DAS_bodyControls", 2),
       ("ID3F5VCFRONT_lighting", 10),
