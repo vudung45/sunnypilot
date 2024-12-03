@@ -62,7 +62,7 @@ def manager_init() -> None:
     ("CustomOffsets", "0"),
     ("DevUIInfo", "0"),
     ("DisableOnroadUploads", "0"),
-    ("DisengageLateralOnBrake", "0"),
+    ("DisengageLateralOnBrake", "1"),
     ("DrivingModelGeneration", "0"),
     ("DynamicLaneProfile", "1"),
     ("DynamicPersonality", "0"),
